@@ -1,0 +1,45 @@
+#!/sbin/openrc-run
+
+###############################################
+# This is a sample Alpine Linux OpenRC script.#
+# File Path: /etc/init.d/luxlibertas           #
+###############################################
+
+description="LuxLibertas Service (Supervised)"
+
+supervisor="supervise-daemon"
+
+directory="/data/luxlibertas"
+cfgfile="$directory/config.json"
+
+command="$directory/luxlibertas"
+command_args="$cfgfile"
+
+command_user="nobody:nobody"
+
+# Network Capabilities Retention (Leveraging OpenRC 3.x+ advanced capabilities syntax)
+# Under supervise-daemon, the '^' prefix ensures capabilities are correctly inherited after privilege demotion
+capabilities="^cap_net_admin,^cap_net_bind_service"
+
+# Self-Healing: Infinite automatic restarts
+# respawn_delay: Wait 5 seconds after a crash before restarting
+respawn_delay=5
+# respawn_max: Set to 0 for unlimited total restart attempts
+respawn_max=0
+
+depend() {
+    use networking
+}
+
+start_pre() {
+    # Ensure the working directory and configuration file exist
+    # to prevent supervise-daemon from falling into an infinite blind loop
+    if [ ! -d "$directory" ]; then
+        eerror "Working directory $directory does not exist!"
+        return 1
+    fi
+    if [ ! -f "$cfgfile" ]; then
+        eerror "Configuration file $cfgfile not found!"
+        return 1
+    fi
+}

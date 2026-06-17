@@ -1,0 +1,57 @@
+# .goreleaser.yml
+# Standard syntax for GoReleaser v2
+version: 2
+
+# Pre-build hooks
+before:
+  hooks:
+    - go mod tidy
+
+# Build configurations matching your compilation logic
+builds:
+  - id: "luxlibertas"
+    binary: "luxlibertas"   # Maps to BINARY_NAME
+    main: ./main.go        # Path to the main entry file
+
+    # Cross-compilation targets for mainstream platforms
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+    # Environment variables matching your Makefile
+    env:
+      - CGO_ENABLED=0      # Disable CGO to ensure fully static links and maximum portability
+
+    # Compilation flags matching your Makefile's LDFLAGS
+    # GoReleaser automatically replaces template variables securely at build time
+    ldflags:
+      - -s -w                                          # Strip symbols and debug info to optimize binary size
+      - -X main.gitCommit={{ .ShortCommit }}           # Inject the short Git commit SHA
+      - -X main.buildTime={{ .Date }}                  # Inject the RFC3339 formatted UTC build time
+      - -X main.goVersion={{ .Env.BUILD_GO_VERSION }}  # Inject Go compiler version
+      - -X main.platform={{ .Os }}/{{ .Arch }}         # Inject target platform (e.g., linux/amd64)
+
+# Archive and packaging configurations
+archives:
+  - format_overrides:
+      - formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    builds_info:
+      owner: root
+      group: root
+
+# Automated checksum generation
+checksum:
+  name_template: 'checksums.txt' # Consolidate all archive hashes into this file
+  algorithm: sha256              # Use standard SHA-256 algorithm
+
+# Automated changelog generation for the GitHub Release page
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^merge'
